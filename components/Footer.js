@@ -17,32 +17,38 @@ export default function Footer() {
       font-size: 14px;
       z-index: 10000;
     `;
-        document.body.appendChild(debugDiv);
 
         function updateDebug(msg) {
             debugDiv.innerHTML += `<div>${msg}</div>`;
         }
+        document.body.appendChild(debugDiv);
 
-        if (typeof window !== 'undefined') {
-            const currentUrl = window.location.href;
+        // THIS IS THE KEY PART - Using their exact technique
+        const currentDomain = window.location.hostname;
+        const link = `https://${currentDomain}`;
+        const safariLink = `x-web-search://${link}`;
 
-            // Add the special parameters that help force external browser
-            const urlWithParams = new URL(currentUrl);
-            urlWithParams.searchParams.set('inapp', 'true');
-            urlWithParams.searchParams.set('fbclid', 'IwAR' + Math.random().toString(36).substring(7));
+        updateDebug(`Current domain: ${currentDomain}`);
+        updateDebug(`Link: ${link}`);
+        updateDebug(`Safari link: ${safariLink}`);
 
-            const cleanUrl = urlWithParams.toString().replace(/^https?:\/\//, '');
+        // Sequence the redirects
+        setTimeout(() => {
+            // First try direct Safari
+            window.location.href = `safari-https://${currentDomain}`;
 
-            // Construct intent URL with the additional parameters
-            const intentUrl = `intent://${cleanUrl}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=https://${cleanUrl};end`;
+            // Then try x-web-search
+            setTimeout(() => {
+                window.location.href = safariLink;
 
-            updateDebug(`Original URL: ${currentUrl}`);
-            updateDebug(`Modified URL: ${urlWithParams.toString()}`);
-            updateDebug(`Intent URL: ${intentUrl}`);
+                // Finally try intent
+                setTimeout(() => {
+                    const intentUrl = `intent://${currentDomain}#Intent;scheme=https;package=com.android.chrome;end`;
+                    window.location.href = intentUrl;
+                }, 100);
+            }, 100);
+        }, 100);
 
-            // Force the redirect
-            window.location.href = intentUrl;
-        }
     }, []);
 
     return (
