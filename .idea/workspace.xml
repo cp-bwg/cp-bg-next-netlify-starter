@@ -4,7 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="87cc87dc-4ee5-48df-9e02-5d0ec311eec3" name="Changes" comment="adding in in-app browser detection to redirect test" />
+    <list default="true" id="87cc87dc-4ee5-48df-9e02-5d0ec311eec3" name="Changes" comment="adding in in-app browser detection to redirect test">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/components/Footer.js" beforeDir="false" afterPath="$PROJECT_DIR$/components/Footer.js" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -86,7 +89,7 @@
       <updated>1738441131378</updated>
       <workItem from="1738441132684" duration="219000" />
       <workItem from="1738441359745" duration="1278000" />
-      <workItem from="1738443939124" duration="1470000" />
+      <workItem from="1738443939124" duration="2337000" />
     </task>
     <task id="LOCAL-00001" summary="adding in in-app browser detection to redirect test">
       <option name="closed" value="true" />
@@ -168,7 +171,23 @@
       <option name="project" value="LOCAL" />
       <updated>1738451146929</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="adding in in-app browser detection to redirect test">
+      <option name="closed" value="true" />
+      <created>1738451411137</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1738451411137</updated>
+    </task>
+    <task id="LOCAL-00012" summary="adding in in-app browser detection to redirect test">
+      <option name="closed" value="true" />
+      <created>1738451687860</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1738451687860</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
