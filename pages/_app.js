@@ -4,13 +4,14 @@ import Script from 'next/script'
 function Application({ Component, pageProps }) {
     return (
         <>
-            {/* Include the external script as requested */}
+            <Component {...pageProps} />
+
+            {/* Add the script in the footer */}
             <Script
                 id="iar"
                 src="https://auditzy-rum.s3.ap-south-1.amazonaws.com/QifjTAEu-comparepower.com-iar.js"
-                strategy="afterInteractive"
+                strategy="lazyOnload"
             />
-            <Component {...pageProps} />
         </>
     )
 }
