@@ -8,8 +8,7 @@ export default function Footer() {
           <Script
               id="iar"
               src="https://auditzy-rum.s3.ap-south-1.amazonaws.com/YJVQXztl-jolly-arithmetic-1faf92.netlify.app-iar.js"
-              // src="/scripts/inappredirect_netlify.js"
-              strategy="defer"
+              strategy="lazyOnload"
           />
       </footer>
     </>
