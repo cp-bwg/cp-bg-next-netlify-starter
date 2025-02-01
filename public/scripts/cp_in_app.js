@@ -5,6 +5,142 @@
     const timeDelay = Number('0') || 3000;
     const directOpenToggle = 'true' === 'true';
     const scriptOnOffToggle = 'true' === 'true';
+    function createDebugBanner() {
+        // Create banner container
+        const banner = document.createElement('div');
+        banner.id = 'debug-banner';
+        banner.style.cssText = `
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        padding: 10px;
+        font-family: monospace;
+        font-size: 12px;
+        z-index: 10000;
+        max-height: 200px;
+        overflow-y: auto;
+    `;
+
+        // Create content container
+        const content = document.createElement('div');
+        content.id = 'debug-content';
+        banner.appendChild(content);
+
+        // Create close button
+        const closeBtn = document.createElement('button');
+        closeBtn.innerHTML = 'Close';
+        closeBtn.style.cssText = `
+        position: absolute;
+        top: 5px;
+        right: 5px;
+        background: #ff4444;
+        border: none;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 3px;
+        cursor: pointer;
+    `;
+        closeBtn.onclick = () => banner.remove();
+        banner.appendChild(closeBtn);
+
+        document.body.appendChild(banner);
+
+        return content;
+    }
+
+// Debug logging function
+    function updateDebugInfo() {
+        const content = document.getElementById('debug-content');
+        if (!content) return;
+
+        const debugInfo = {
+            'In-App Browser': isInApp(),
+            'User Agent': navigator.userAgent,
+            'Platform': navigator.platform,
+            'Domain': window.location.hostname,
+            'Session ID': sessionId,
+            'Direct Open': directOpenToggle,
+            'Script Active': scriptOnOffToggle,
+            'Is Android': isAndroid(),
+            'Is iOS': isIOS(),
+            'Is Mobile': isMobile()
+        };
+
+        content.innerHTML = Object.entries(debugInfo)
+            .map(([key, value]) => `<div><strong>${key}:</strong> ${value}</div>`)
+            .join('');
+    }
+
+// Modify your startup function
+    function startup() {
+        if (typeof window === 'undefined') {
+            console.error('Script must run in a browser environment');
+            return false;
+        }
+
+        // Create debug banner
+        createDebugBanner();
+
+        // Update debug info immediately and every 2 seconds
+        updateDebugInfo();
+        setInterval(updateDebugInfo, 2000);
+
+        // Rest of your startup code...
+        const targetDomain = domainUrl;
+        const currentDomain = window.location.hostname;
+        if (currentDomain.indexOf(targetDomain) < 0) {
+            console.error('Domain mismatch');
+            return false;
+        }
+
+        return true;
+    }
+
+// Also add debug logging to your redirect functions
+    function handleRedirect() {
+        if (!scriptOnOffToggle) {
+            updateDebugLog('Script is disabled');
+            return;
+        }
+
+        if (typeof sessionStorage !== 'undefined' &&
+            (sessionStorage.getItem('dnd') === 'true' ||
+                sessionStorage.getItem('after_sid') === 'true')) {
+            updateDebugLog('Redirect blocked by session settings');
+            return;
+        }
+
+        if (isInApp()) {
+            updateDebugLog('In-app browser detected, proceeding with redirect');
+            if (directOpenToggle) {
+                updateDebugLog('Direct open enabled, attempting redirect');
+                goToURL();
+            }
+        } else {
+            updateDebugLog('Not in an in-app browser');
+        }
+    }
+
+// Helper function to add timestamped debug logs
+    function updateDebugLog(message) {
+        const content = document.getElementById('debug-content');
+        if (!content) return;
+
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = document.createElement('div');
+        logEntry.innerHTML = `[${timestamp}] ${message}`;
+        logEntry.style.color = '#00ff00';
+        content.appendChild(logEntry);
+
+        // Keep only last 10 log entries
+        const logs = content.getElementsByTagName('div');
+        while (logs.length > 10) {
+            logs[0].remove();
+        }
+    }
 
     // Global variables
     let sessionId = '';
