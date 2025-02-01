@@ -1,99 +1,121 @@
-// Configuration
-const uniqueKey = 'YJVQXztl';
-const domainUrl = window.location.hostname;
-const timeDelay = Number('0') || 3000;
-const directOpenToggle = 'true' === 'true' ? true : false;
-const scriptOnOffToggle = 'true' === 'true' ? true : false;
+(function() {
+    // Configuration
+    const uniqueKey = 'YJVQXztl';
+    const domainUrl = typeof window !== 'undefined' ? window.location.hostname : '';
+    const timeDelay = Number('0') || 3000;
+    const directOpenToggle = 'true' === 'true';
+    const scriptOnOffToggle = 'true' === 'true';
 
-// Global variables
-let chromeIntentUrl = '';
-let sessionId = '';
-let cookieSid = '';
-let chromeRedirectInitiated = false;
-let stickyWidgetExpanded = false;
+    // Global variables
+    let sessionId = '';
+    let chromeRedirectInitiated = false;
+    let stickyWidgetExpanded = false;
+    let redirectionSuccessful = false;
 
-// Generate UUID for session tracking
-function genUUID() {
-    if (window.crypto && typeof crypto.randomUUID === 'function') {
-        return crypto.randomUUID();
-    }
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        const r = Math.random() * 16 | 0;
-        return (c == 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-    });
-}
+    // Browser detection utils
+    function getBrowser(userAgent) {
+        const browsers = {
+            Instagram: /Instagram/i,
+            Facebook: /FBAN|FBAV/i,
+            Snapchat: /Snapchat/i,
+            LinkedIn: /LinkedIn/i,
+            Chrome: /Chrome/i,
+            Safari: /Safari/i
+        };
 
-// Initialize session
-if (!sessionStorage.getItem('sid')) {
-    sessionId = genUUID();
-    sessionStorage.setItem('sid', sessionId);
-} else {
-    sessionId = sessionStorage.getItem('sid');
-}
-
-// Browser detection
-function isMobile() {
-    return /(iPad|iPhone|Android|Mobile)/i.test(navigator.userAgent) || false;
-}
-
-function isAndroid() {
-    return /Android/i.test(navigator.userAgent);
-}
-
-function isIOS() {
-    return /(iPhone|iPod|iPad)/i.test(navigator.userAgent);
-}
-
-function isInApp() {
-    const rules = [
-        'WebView',
-        '(iPhone|iPod|iPad)(?!.*Safari/)',
-        '(wv)'
-    ];
-    const regex = new RegExp('(' + rules.join('|') + ')', 'ig');
-    return Boolean(navigator.userAgent.match(regex));
-}
-
-// URL handling
-function goToURL() {
-    const currentUrl = window?.location?.href;
-    const baseUrl = currentUrl?.split('?')[0];
-    sessionStorage.setItem('after_sid', true);
-
-    let platformCode = '';
-    const browserInfo = getBrowser(navigator.userAgent);
-    const browserName = browserInfo?.Name || null;
-
-    // Determine platform code based on browser
-    if (browserName !== null || browserName !== undefined) {
-        if (browserName === 'Instagram') platformCode = 'ig';
-        else if (browserName === 'Facebook') platformCode = 'fb';
-        else if (browserName === 'Snapchat') platformCode = 'sc';
-        else if (browserName === 'LinkedIn') platformCode = 'li';
-        else platformCode = browserName;
-    }
-
-    const utmParam = baseUrl ? 
-        '&utm_term=inappredir_click' : 
-        '?utm_term=inappredir_click';
-    
-    const cleanUrl = currentUrl?.replace(/^https?:\/\//, '');
-    
-    // Universal URL scheme
-    const universalUrl = `intent://${cleanUrl}${utmParam}&adz_redir=c&adz_plt=${platformCode}&adz_sid=${sessionId}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=https://${cleanUrl}${utmParam}&adz_redir=c&adz_plt=${platformCode}&adz_sid=${sessionId};end`;
-
-    // Attempt to open in system browser
-    window.location.href = universalUrl;
-
-    // Fallback handling
-    setTimeout(function() {
-        if (window.location.href === currentUrl) {
-            createStickyWidget();
+        for (const [name, regex] of Object.entries(browsers)) {
+            if (regex.test(userAgent)) {
+                return { Name: name };
+            }
         }
-    }, 1500);
+        return { Name: 'Unknown' };
+    }
 
-    // Track the attempt if not already successful
-    if (!redirectionSuccessful) {
+    function isMobile() {
+        return typeof navigator !== 'undefined' &&
+            (/(iPad|iPhone|Android|Mobile)/i.test(navigator.userAgent) || false);
+    }
+
+    function isAndroid() {
+        return typeof navigator !== 'undefined' && /Android/i.test(navigator.userAgent);
+    }
+
+    function isIOS() {
+        return typeof navigator !== 'undefined' &&
+            /(iPhone|iPod|iPad)/i.test(navigator.userAgent);
+    }
+
+    function isInApp() {
+        if (typeof navigator === 'undefined') return false;
+
+        const rules = [
+            'WebView',
+            '(iPhone|iPod|iPad)(?!.*Safari/)',
+            '(wv)'
+        ];
+        const regex = new RegExp('(' + rules.join('|') + ')', 'ig');
+        return Boolean(navigator.userAgent.match(regex));
+    }
+
+    // Session management
+    function genUUID() {
+        if (typeof window !== 'undefined' && window.crypto && typeof crypto.randomUUID === 'function') {
+            return crypto.randomUUID();
+        }
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            return (c == 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+        });
+    }
+
+    function initSession() {
+        if (typeof sessionStorage === 'undefined') return;
+
+        if (!sessionStorage.getItem('sid')) {
+            sessionId = genUUID();
+            sessionStorage.setItem('sid', sessionId);
+        } else {
+            sessionId = sessionStorage.getItem('sid');
+        }
+    }
+
+    // Tracking and analytics
+    function post(data) {
+        try {
+            fetch('/api/track', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+        } catch (error) {
+            console.error('Tracking failed:', error);
+        }
+    }
+
+    // URL handling
+    function goToURL() {
+        if (typeof window === 'undefined') return;
+
+        const currentUrl = window.location.href;
+        const baseUrl = currentUrl?.split('?')[0];
+
+        if (typeof sessionStorage !== 'undefined') {
+            sessionStorage.setItem('after_sid', 'true');
+        }
+
+        const platformCode = getPlatformCode();
+        const utmParam = baseUrl ?
+            '&utm_term=inappredir_click' :
+            '?utm_term=inappredir_click';
+
+        const cleanUrl = currentUrl?.replace(/^https?:\/\//, '');
+        const universalUrl = `intent://${cleanUrl}${utmParam}&adz_redir=c&adz_plt=${platformCode}&adz_sid=${sessionId}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=https://${cleanUrl}${utmParam}&adz_redir=c&adz_plt=${platformCode}&adz_sid=${sessionId};end`;
+
+        window.location.href = universalUrl;
+
+        // Track the attempt
         const trackingData = {
             sessionId: sessionId,
             type: 'oic',
@@ -103,110 +125,87 @@ function goToURL() {
             domainUrl: domainUrl
         };
         post(trackingData);
-        closeModalOverlay('close');
-        removeStickyFooter();
-    }
-}
-
-// Widget-less URL handling
-function goToURLWithoutWidget() {
-    const currentUrl = window?.location?.href;
-    const baseUrl = currentUrl?.split('?')[0];
-
-    let platformCode = '';
-    const browserInfo = getBrowser(navigator.userAgent);
-    const browserName = browserInfo?.Name || null;
-
-    if (browserName !== null || browserName !== undefined) {
-        if (browserName === 'Instagram') platformCode = 'ig';
-        else if (browserName === 'Facebook') platformCode = 'fb';
-        else if (browserName === 'Snapchat') platformCode = 'sc';
-        else if (browserName === 'LinkedIn') platformCode = 'li';
-        else platformCode = browserName;
     }
 
-    const utmParam = baseUrl ? 
-        '&utm_term=inappredir_click' : 
-        '?utm_term=inappredir_click';
-    
-    const cleanUrl = currentUrl?.replace(/^https?:\/\//, '');
-    
-    const universalUrl = `intent://${cleanUrl}${utmParam}&adz_redir=c&adz_plt=${platformCode}&adz_sid=${sessionId}#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=https://${cleanUrl}${utmParam}&adz_redir=c&adz_plt=${platformCode}&adz_sid=${sessionId};end`;
-
-    window.location.href = universalUrl;
-
-    const trackingData = {
-        sessionId: sessionId,
-        type: 'oic',
-        time: new Date().toISOString(),
-        url: window.location.href,
-        tagId: uniqueKey,
-        domainUrl: domainUrl
-    };
-    post(trackingData);
-    closeModalOverlay('close');
-    removeStickyFooter();
-}
-
-// Cookie handling
-function setCookie(name, value, days, domain, secure) {
-    let expires = '';
-    if (days) {
-        const date = new Date();
-        date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-        expires = '; expires=' + date.toUTCString();
-    }
-    let cookieString = name + '=' + value + expires + '; path=/';
-    if (domain) cookieString += '; domain=' + domain;
-    if (secure) cookieString += '; Secure';
-    document.cookie = cookieString;
-}
-
-function getCookie(name) {
-    const nameEQ = name + '=';
-    const ca = document.cookie.split(';');
-    for (let i = 0; i < ca.length; i++) {
-        let c = ca[i];
-        while (c.charAt(0) == ' ') c = c.substring(1, c.length);
-        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
-    }
-    return null;
-}
-
-// Startup check
-function startup() {
-    if (typeof window === 'undefined') {
-        console.error('Script must run in a browser environment');
-        return false;
+    function goToURLWithoutWidget() {
+        goToURL();
     }
 
-    // Verify domain
-    const targetDomain = domainUrl;
-    const currentDomain = window.location.hostname;
-    if (currentDomain.indexOf(targetDomain) < 0) {
-        console.error('Cannot run script as this script belongs to different domain');
-        return false;
+    function getPlatformCode() {
+        if (typeof navigator === 'undefined') return '';
+
+        if (navigator.userAgent.includes('Instagram')) return 'ig';
+        if (navigator.userAgent.includes('FBAN') || navigator.userAgent.includes('FBAV')) return 'fb';
+        if (navigator.userAgent.includes('Snapchat')) return 'sc';
+        if (navigator.userAgent.includes('LinkedIn')) return 'li';
+        return 'other';
     }
 
-    return true;
-}
+    // Core functionality
+    function handleRedirect() {
+        if (!scriptOnOffToggle) return;
 
-// Initialize script
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Script initialized');
-    if (startup() && isInApp()) {
-        console.log('Starting redirect handler');
-        handleRedirect();
-    } else {
-        console.log('Not in-app or startup failed');
+        if (typeof sessionStorage !== 'undefined' &&
+            (sessionStorage.getItem('dnd') === 'true' ||
+                sessionStorage.getItem('after_sid') === 'true')) {
+            return;
+        }
+
+        if (isInApp()) {
+            console.log('In-app browser detected');
+            if (directOpenToggle) {
+                console.log('Direct open enabled, attempting redirect');
+                goToURL();
+            }
+        }
     }
-});
 
-// Handle page visibility change
-document.addEventListener('visibilitychange', handleChromeRedirectionChange, false);
+    function handleChromeRedirectionChange() {
+        if (document.hidden) {
+            chromeRedirectInitiated = true;
+        }
+    }
 
-// Make functions globally available
-window.startup = startup;
-window.handleRedirect = handleRedirect;
-window.goToURL = goToURL;
-window.goToURLWithoutWidget = goToURLWithoutWidget;
+    // Startup
+    function startup() {
+        if (typeof window === 'undefined') {
+            console.error('Script must run in a browser environment');
+            return false;
+        }
+
+        initSession();
+
+        const targetDomain = domainUrl;
+        const currentDomain = window.location.hostname;
+        if (currentDomain.indexOf(targetDomain) < 0) {
+            console.error('Domain mismatch');
+            return false;
+        }
+
+        return true;
+    }
+
+    // Initialize when DOM is ready
+    if (typeof document !== 'undefined') {
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', function() {
+                console.log('DOM Content Loaded');
+                startup() && handleRedirect();
+            });
+        } else {
+            console.log('Document already ready');
+            startup() && handleRedirect();
+        }
+
+        document.addEventListener('visibilitychange', handleChromeRedirectionChange, false);
+    }
+
+    // Make necessary functions globally available
+    if (typeof window !== 'undefined') {
+        window.handleRedirect = handleRedirect;
+        window.goToURL = goToURL;
+        window.goToURLWithoutWidget = goToURLWithoutWidget;
+        window.isInApp = isInApp;
+        window.startup = startup;
+    }
+})();
